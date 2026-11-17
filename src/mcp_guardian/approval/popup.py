@@ -128,8 +128,8 @@ class PopupPresenter:
         dialog.title("MCP Guardian — Confirm Request")
         dialog.attributes("-topmost", True)
         dialog.resizable(True, True)
-        dialog.minsize(480, 360)
-        dialog.geometry("560x420")
+        dialog.minsize(520, 440)
+        dialog.geometry("580x480")
         try:
             dialog.lift()
             dialog.focus_force()
@@ -137,15 +137,77 @@ class PopupPresenter:
         except Exception:
             pass
 
-        # Use classic tk widgets for buttons — ttk themes on some Linux desktops
-        # render Button as empty flat strips with invisible labels.
+        # Classic tk widgets — ttk.Button is broken on some Linux themes.
         bg = "#f4f4f5"
         dialog.configure(bg=bg)
         frame = tk.Frame(dialog, bg=bg, padx=16, pady=16)
         frame.pack(fill=tk.BOTH, expand=True)
 
+        def finish(decision: Decision) -> None:
+            if decided["done"]:
+                return
+            decided["done"] = True
+            try:
+                dialog.grab_release()
+            except Exception:
+                pass
+            dialog.destroy()
+            on_decision(decision)
+
+        # Pack actions FIRST at the bottom so expand=True content cannot hide them.
+        btn_row = tk.Frame(frame, bg=bg)
+        btn_row.pack(side=tk.BOTTOM, fill=tk.X, pady=(12, 0))
+
+        tk.Button(
+            btn_row,
+            text="  Block  ",
+            command=lambda: finish(Decision.BLOCK),
+            font=("Sans", 11, "bold"),
+            bg="#dc2626",
+            fg="#ffffff",
+            activebackground="#b91c1c",
+            activeforeground="#ffffff",
+            disabledforeground="#ffffff",
+            highlightthickness=0,
+            relief=tk.RAISED,
+            borderwidth=2,
+            padx=20,
+            pady=10,
+            cursor="hand2",
+        ).pack(side=tk.RIGHT, padx=(8, 0))
+
+        tk.Button(
+            btn_row,
+            text="  Allow  ",
+            command=lambda: finish(Decision.ALLOW),
+            font=("Sans", 11, "bold"),
+            bg="#16a34a",
+            fg="#ffffff",
+            activebackground="#15803d",
+            activeforeground="#ffffff",
+            disabledforeground="#ffffff",
+            highlightthickness=0,
+            relief=tk.RAISED,
+            borderwidth=2,
+            padx=20,
+            pady=10,
+            cursor="hand2",
+        ).pack(side=tk.RIGHT)
+
         tk.Label(
-            frame,
+            btn_row,
+            text="Enter = Allow · Esc = Block",
+            font=("Sans", 9),
+            bg=bg,
+            fg="#6b7280",
+            anchor="w",
+        ).pack(side=tk.LEFT)
+
+        body = tk.Frame(frame, bg=bg)
+        body.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+        tk.Label(
+            body,
             text="An MCP tool invocation is pending your approval",
             font=("Sans", 12, "bold"),
             bg=bg,
@@ -161,7 +223,7 @@ class PopupPresenter:
             f"ID:     {request.request_id}"
         )
         tk.Label(
-            frame,
+            body,
             text=meta,
             justify=tk.LEFT,
             font=("monospace", 10),
@@ -170,12 +232,12 @@ class PopupPresenter:
             anchor="w",
         ).pack(anchor=tk.W, fill=tk.X, pady=(12, 8))
 
-        tk.Label(frame, text="Arguments:", bg=bg, fg="#111827", anchor="w").pack(
+        tk.Label(body, text="Arguments:", bg=bg, fg="#111827", anchor="w").pack(
             anchor=tk.W
         )
         args_box = tk.Text(
-            frame,
-            height=12,
+            body,
+            height=8,
             wrap=tk.WORD,
             font=("monospace", 10),
             bg="#ffffff",
@@ -185,7 +247,7 @@ class PopupPresenter:
             padx=8,
             pady=8,
         )
-        args_box.pack(fill=tk.BOTH, expand=True, pady=(4, 12))
+        args_box.pack(fill=tk.BOTH, expand=True, pady=(4, 0))
         try:
             pretty = json.dumps(request.arguments, indent=2, ensure_ascii=False)
         except TypeError:
@@ -193,63 +255,8 @@ class PopupPresenter:
         args_box.insert("1.0", pretty)
         args_box.configure(state=tk.DISABLED)
 
-        btn_row = tk.Frame(frame, bg=bg)
-        btn_row.pack(fill=tk.X, pady=(4, 0))
-
-        def finish(decision: Decision) -> None:
-            if decided["done"]:
-                return
-            decided["done"] = True
-            try:
-                dialog.grab_release()
-            except Exception:
-                pass
-            dialog.destroy()
-            on_decision(decision)
-
-        # Explicit colors/padding so labels stay readable across themes.
-        tk.Button(
-            btn_row,
-            text="Block",
-            command=lambda: finish(Decision.BLOCK),
-            font=("Sans", 11, "bold"),
-            bg="#dc2626",
-            fg="#ffffff",
-            activebackground="#b91c1c",
-            activeforeground="#ffffff",
-            relief=tk.RAISED,
-            borderwidth=1,
-            padx=18,
-            pady=8,
-            cursor="hand2",
-        ).pack(side=tk.RIGHT, padx=(8, 0))
-
-        tk.Button(
-            btn_row,
-            text="Allow",
-            command=lambda: finish(Decision.ALLOW),
-            font=("Sans", 11, "bold"),
-            bg="#16a34a",
-            fg="#ffffff",
-            activebackground="#15803d",
-            activeforeground="#ffffff",
-            relief=tk.RAISED,
-            borderwidth=1,
-            padx=18,
-            pady=8,
-            cursor="hand2",
-        ).pack(side=tk.RIGHT)
-
-        hint = tk.Label(
-            btn_row,
-            text="Enter = Allow · Esc = Block",
-            font=("Sans", 9),
-            bg=bg,
-            fg="#6b7280",
-            anchor="w",
-        )
-        hint.pack(side=tk.LEFT)
-
         dialog.protocol("WM_DELETE_WINDOW", lambda: finish(Decision.BLOCK))
         dialog.bind("<Escape>", lambda _e: finish(Decision.BLOCK))
         dialog.bind("<Return>", lambda _e: finish(Decision.ALLOW))
+        # Ensure dialog lays out before grab so buttons are on-screen.
+        dialog.update_idletasks()
