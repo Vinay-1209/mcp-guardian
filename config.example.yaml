@@ -1,0 +1,16 @@
+# Example operator settings (documentation only).
+# Runtime: CLI --timeout / --name, env MCP_GUARDIAN_AUTO_DECISION=allow|block
+
+timeout_seconds: 120
+gated_methods:
+  - tools/call
+
+# Claude Desktop: point each server command at
+#   mcp-guardian wrap --name <label> -- <real server>
+#
+# Claude Web / remote:
+#   mcp-guardian http --listen 127.0.0.1:8765 -- <real server>
+#   then expose https://…/mcp via cloudflared or ngrok
+#
+# UI daemon (recommended on Linux Desktop hosts):
+#   mcp-guardian ui

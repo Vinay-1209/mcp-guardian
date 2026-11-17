@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcp-guardian"
+version = "0.1.0"
+description = "Human-in-the-loop Allow/Block authorization proxy for MCP tool calls"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Vinay", email = "" }]
+keywords = ["mcp", "model-context-protocol", "security", "claude", "proxy"]
+dependencies = [
+    "aiohttp>=3.9.0",
+    "pyyaml>=6.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Vinay-1209/mcp-guardian"
+Repository = "https://github.com/Vinay-1209/mcp-guardian"
+Issues = "https://github.com/Vinay-1209/mcp-guardian/issues"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+]
+
+[project.scripts]
+mcp-guardian = "mcp_guardian.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+pythonpath = ["src"]
