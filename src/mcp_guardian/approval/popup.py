@@ -137,14 +137,21 @@ class PopupPresenter:
         except Exception:
             pass
 
-        frame = ttk.Frame(dialog, padding=16)
+        # Use classic tk widgets for buttons — ttk themes on some Linux desktops
+        # render Button as empty flat strips with invisible labels.
+        bg = "#f4f4f5"
+        dialog.configure(bg=bg)
+        frame = tk.Frame(dialog, bg=bg, padx=16, pady=16)
         frame.pack(fill=tk.BOTH, expand=True)
 
-        ttk.Label(
+        tk.Label(
             frame,
             text="An MCP tool invocation is pending your approval",
             font=("Sans", 12, "bold"),
-        ).pack(anchor=tk.W)
+            bg=bg,
+            fg="#111827",
+            anchor="w",
+        ).pack(anchor=tk.W, fill=tk.X)
 
         meta = (
             f"Server: {request.server_name}\n"
@@ -153,12 +160,31 @@ class PopupPresenter:
             f"Time:   {request.created_at.isoformat()}\n"
             f"ID:     {request.request_id}"
         )
-        ttk.Label(frame, text=meta, justify=tk.LEFT, font=("monospace", 10)).pack(
-            anchor=tk.W, pady=(12, 8)
-        )
+        tk.Label(
+            frame,
+            text=meta,
+            justify=tk.LEFT,
+            font=("monospace", 10),
+            bg=bg,
+            fg="#1f2937",
+            anchor="w",
+        ).pack(anchor=tk.W, fill=tk.X, pady=(12, 8))
 
-        ttk.Label(frame, text="Arguments:").pack(anchor=tk.W)
-        args_box = tk.Text(frame, height=12, wrap=tk.WORD, font=("monospace", 10))
+        tk.Label(frame, text="Arguments:", bg=bg, fg="#111827", anchor="w").pack(
+            anchor=tk.W
+        )
+        args_box = tk.Text(
+            frame,
+            height=12,
+            wrap=tk.WORD,
+            font=("monospace", 10),
+            bg="#ffffff",
+            fg="#111827",
+            relief=tk.SOLID,
+            borderwidth=1,
+            padx=8,
+            pady=8,
+        )
         args_box.pack(fill=tk.BOTH, expand=True, pady=(4, 12))
         try:
             pretty = json.dumps(request.arguments, indent=2, ensure_ascii=False)
@@ -167,8 +193,8 @@ class PopupPresenter:
         args_box.insert("1.0", pretty)
         args_box.configure(state=tk.DISABLED)
 
-        btn_row = ttk.Frame(frame)
-        btn_row.pack(fill=tk.X)
+        btn_row = tk.Frame(frame, bg=bg)
+        btn_row.pack(fill=tk.X, pady=(4, 0))
 
         def finish(decision: Decision) -> None:
             if decided["done"]:
@@ -181,12 +207,48 @@ class PopupPresenter:
             dialog.destroy()
             on_decision(decision)
 
-        ttk.Button(btn_row, text="Block", command=lambda: finish(Decision.BLOCK)).pack(
-            side=tk.RIGHT, padx=(8, 0)
+        # Explicit colors/padding so labels stay readable across themes.
+        tk.Button(
+            btn_row,
+            text="Block",
+            command=lambda: finish(Decision.BLOCK),
+            font=("Sans", 11, "bold"),
+            bg="#dc2626",
+            fg="#ffffff",
+            activebackground="#b91c1c",
+            activeforeground="#ffffff",
+            relief=tk.RAISED,
+            borderwidth=1,
+            padx=18,
+            pady=8,
+            cursor="hand2",
+        ).pack(side=tk.RIGHT, padx=(8, 0))
+
+        tk.Button(
+            btn_row,
+            text="Allow",
+            command=lambda: finish(Decision.ALLOW),
+            font=("Sans", 11, "bold"),
+            bg="#16a34a",
+            fg="#ffffff",
+            activebackground="#15803d",
+            activeforeground="#ffffff",
+            relief=tk.RAISED,
+            borderwidth=1,
+            padx=18,
+            pady=8,
+            cursor="hand2",
+        ).pack(side=tk.RIGHT)
+
+        hint = tk.Label(
+            btn_row,
+            text="Enter = Allow · Esc = Block",
+            font=("Sans", 9),
+            bg=bg,
+            fg="#6b7280",
+            anchor="w",
         )
-        ttk.Button(btn_row, text="Allow", command=lambda: finish(Decision.ALLOW)).pack(
-            side=tk.RIGHT
-        )
+        hint.pack(side=tk.LEFT)
 
         dialog.protocol("WM_DELETE_WINDOW", lambda: finish(Decision.BLOCK))
         dialog.bind("<Escape>", lambda _e: finish(Decision.BLOCK))
